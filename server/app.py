@@ -18,6 +18,12 @@ db.init_app(app)
 
 api = Api(app)
 
+@app.before_request
+def login_checker():
+    disallowed_endpoints = ['member_index', 'member_article']
+    if request.endpoint in disallowed_endpoints and not session["user_id"]:
+        return {"error": "get out bub"}, 401
+
 class ClearSession(Resource):
 
     def delete(self):
@@ -87,12 +93,15 @@ class CheckSession(Resource):
 class MemberOnlyIndex(Resource):
     
     def get(self):
-        pass
+        articles = Article.query.filter(Article.is_member_only == True).all()
+        article_dicts = [art.to_dict() for art in articles]
+        return make_response(article_dicts, 200)
 
 class MemberOnlyArticle(Resource):
     
     def get(self, id):
-        pass
+        article = Article.query.filter(Article.id == id).first()
+        return make_response(article.to_dict(), 200)
 
 api.add_resource(ClearSession, '/clear', endpoint='clear')
 api.add_resource(IndexArticle, '/articles', endpoint='article_list')
